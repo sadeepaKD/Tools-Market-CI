@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/your-username/accs-market-sample.git', branch: 'main'
+                git url: 'https://github.com/sadeepaKD/Tools-Market-CI.git', branch: 'main'
             }
         }
         stage('Build Docker Image') {
