@@ -1,9 +1,8 @@
 pipeline {
     agent any
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('docker-hub-credentials')
         IMAGE_NAME = "sadeepakd/tools-market-ci"
-        DROPLET_IP = "143.110.236.166" // Replace with your production Droplet IP
+        DROPLET_IP = "143.110.236.166"
     }
     stages {
         stage('Checkout') {
@@ -21,7 +20,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
                         docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push()
                         docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push('latest')
                     }
@@ -51,4 +50,4 @@ pipeline {
             echo "Deployment successful!"
         }
     }
-}  
+}
