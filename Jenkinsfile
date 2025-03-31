@@ -1,5 +1,10 @@
 pipeline {
     agent any
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('docker-hub-credentials')
+        IMAGE_NAME = "sadeepakd/tools-market-ci"
+        DROPLET_IP = "143.110.236.166" // Replace with your production Droplet IP
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -8,23 +13,42 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t accs-market .'
+                script {
+                    docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
+                }
             }
         }
-        stage('Run Docker Container') {
+        stage('Push to Docker Hub') {
             steps {
-                bat 'docker stop accs-market || exit 0'
-                bat 'docker rm accs-market || exit 0'
-                bat 'docker run -d --name accs-market -p 8081:80 accs-market'
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                        docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push()
+                        docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push('latest')
+                    }
+                }
+            }
+        }
+        stage('Deploy to Production') {
+            steps {
+                sshagent(['droplet-ssh-credentials']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no root@${DROPLET_IP} '
+                        docker stop tools-market-ci || true &&
+                        docker rm tools-market-ci || true &&
+                        docker pull ${IMAGE_NAME}:latest &&
+                        docker run -d --name tools-market-ci -p 80:80 --restart unless-stopped ${IMAGE_NAME}:latest
+                    '
+                    """
+                }
             }
         }
     }
     post {
-        success {
-            echo 'Site is running at http://localhost:8081'
-        }
         failure {
-            echo 'Pipeline failed.'
+            echo "Pipeline failed."
+        }
+        success {
+            echo "Deployment successful!"
         }
     }
-}
+}  
