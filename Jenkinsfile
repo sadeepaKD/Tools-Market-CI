@@ -19,10 +19,12 @@ pipeline {
         }
         stage('Push to Docker Hub') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push()
-                        docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push('latest')
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        docker.withRegistry('https://index.docker.io/v1/', credentialsId: 'docker-hub-credentials') {
+                            docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push()
+                            docker.image("${IMAGE_NAME}:${env.BUILD_NUMBER}").push('latest')
+                        }
                     }
                 }
             }
